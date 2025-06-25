@@ -6,6 +6,7 @@ import com.snorkell.ticketmaster.entity.GuestUser;
 import com.snorkell.ticketmaster.entity.ShowD;
 import com.snorkell.ticketmaster.entity.VirtualSeatD;
 //import com.snorkell.ticketmaster.mapper.DTOToEntityMapper;
+import com.snorkell.ticketmaster.exceptions.CustomException;
 import com.snorkell.ticketmaster.mapper.EntityToDTOMapper;
 import com.snorkell.ticketmaster.model.Booking;
 import com.snorkell.ticketmaster.model.MovieShows;
@@ -14,6 +15,7 @@ import com.snorkell.ticketmaster.model.Status;
 import com.snorkell.ticketmaster.repo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -62,13 +64,13 @@ public class BookingServiceDImpl implements BookingService {
 
         Optional<GuestUser> user = guestRepo.findById(userId);
         if (user.isEmpty()){
-            throw new Exception();
+            throw new CustomException(HttpStatus.BAD_REQUEST, "User not found");
         }
 
         // Book the show
         Optional<ShowD> showD = showRepo.findById(showID);
         if (showD.isEmpty()){
-            throw new Exception();
+            throw new CustomException(HttpStatus.BAD_REQUEST, "show not found");
         }
 
 
@@ -80,7 +82,7 @@ public class BookingServiceDImpl implements BookingService {
         BookingD bookingD = new BookingD(showD.get(), user.get());
         if (!eligibleSeats.stream().allMatch(seat -> seat.getStatus() == Status.AVAILABLE)) {
             log.trace("Some of the seats are not available");
-            throw new Exception();
+            throw new CustomException(HttpStatus.CONFLICT, "Seats are not available");
         }
 
         double total = eligibleSeats.stream().map(VirtualSeatD::getPrice).reduce(0.0, Double::sum);
